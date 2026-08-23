@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CARD/CODE Admin — Digital Business Card Editor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  :root{
+    --paper:#F1ECE0;
+    --paper-2:#E8E1D2;
+    --ink:#15140F;
+    --ink-soft:#4A473D;
+    --line:#C9C0AA;
+    --cyan:#00AEEF;
+    --magenta:#EC0C8C;
+    --amber:#FFB400;
+    --card-accent:#2EC4A6;
+    --card-accent-dark:#1B9E82;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    background-image:
+      radial-gradient(circle, var(--line) 1px, transparent 1px);
+    background-size:22px 22px;
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    padding:28px 20px 80px;
+  }
+
+  /* ---------- Header ---------- */
+  .masthead{
+    max-width:1180px;
+    margin:0 auto 26px;
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    border-bottom:3px solid var(--ink);
+    padding-bottom:14px;
+  }
+  .masthead-title{
+    display:flex;
+    align-items:baseline;
+    gap:14px;
+  }
+  .masthead h1{
+    font-family:'Big Shoulders Display',sans-serif;
+    font-weight:800;
+    font-size:clamp(34px,5vw,56px);
+    letter-spacing:0.5px;
+    margin:0;
+    line-height:0.85;
+  }
+  .masthead h1 span{color:var(--card-accent-dark);}
+  .masthead-sub{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+  }
+  .plate-dots{
+    display:flex;
+    gap:7px;
+    align-items:center;
+  }
+  .plate-dots span{
+    width:11px;height:11px;border-radius:50%;
+    display:inline-block;
+  }
+  .plate-dots .c{background:var(--cyan);}
+  .plate-dots .m{background:var(--magenta);}
+  .plate-dots .y{background:var(--amber);}
+  .plate-dots .k{background:var(--ink);}
+  .plate-label{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10px;
+    letter-spacing:1px;
+    color:var(--ink-soft);
+    text-transform:uppercase;
+  }
+
+  /* ---------- Layout ---------- */
+  .wrap{
+    max-width:1180px;
+    margin:0 auto;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:26px;
+    align-items:start;
+  }
+  @media (max-width:940px){
+    .wrap{grid-template-columns:1fr;}
+  }
+
+  /* ---------- Form panel ---------- */
+  .panel{
+    background:#FBF9F3;
+    border:1.5px solid var(--ink);
+    position:relative;
+  }
+  .panel::before{
+    content:"";
+    position:absolute; inset:6px;
+    border:1px dashed var(--line);
+    pointer-events:none;
+  }
+  .panel-head{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:14px 18px;
+    border-bottom:1.5px solid var(--ink);
+  }
+  .panel-head h2{
+    font-family:'Big Shoulders Display',sans-serif;
+    font-weight:700;
+    font-size:22px;
+    margin:0;
+    letter-spacing:0.3px;
+  }
+  .tag{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10px;
+    letter-spacing:1px;
+    color:#fff;
+    background:var(--ink);
+    padding:3px 8px;
+  }
+  .panel-body{padding:20px 22px 24px;}
+
+  .field-row{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;}
+  .field-row.single{grid-template-columns:1fr;}
+  @media (max-width:520px){.field-row{grid-template-columns:1fr;}}
+
+  label{
+    display:block;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin-bottom:5px;
+  }
+  input[type=text], input[type=tel], input[type=email], input[type=url]{
+    width:100%;
+    border:1.5px solid var(--ink);
+    background:#fff;
+    padding:9px 10px;
+    font-family:'Inter',sans-serif;
+    font-size:14px;
+    color:var(--ink);
+  }
+  input:focus{outline:2px solid var(--card-accent-dark); outline-offset:1px;}
+
+  .section-label{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin:18px 0 8px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .section-label::after{
+    content:"";
+    flex:1;
+    height:1px;
+    background:var(--line);
+  }
+
+  .upload-row{display:flex; gap:14px; margin-bottom:6px;}
+  .upload-box{
+    flex:1;
+    border:1.5px dashed var(--line);
+    background:#fff;
+    text-align:center;
+    padding:14px 8px;
+    cursor:pointer;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10px;
+    letter-spacing:0.5px;
+    color:var(--ink-soft);
+    position:relative;
+    overflow:hidden;
+    min-height:70px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .upload-box img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover;}
+  .upload-box input{position:absolute; inset:0; opacity:0; cursor:pointer;}
+
+  .badge-list{display:flex; flex-direction:column; gap:8px;}
+  .badge-item{display:flex; gap:6px;}
+  .badge-item input{flex:1;}
+  .icon-btn{
+    border:1.5px solid var(--ink);
+    background:#fff;
+    width:36px; height:36px;
+    font-size:16px;
+    cursor:pointer;
+    flex-shrink:0;
+  }
+  .icon-btn:hover{background:var(--paper-2);}
+  .add-badge{
+    margin-top:8px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:0.5px;
+    background:none;
+    border:1.5px solid var(--ink);
+    padding:7px 12px;
+    cursor:pointer;
+  }
+  .add-badge:hover{background:var(--ink); color:#fff;}
+
+  .gallery-upload-row{
+    display:flex; flex-wrap:wrap; gap:8px;
+    margin-bottom:8px;
+  }
+  .gallery-thumb{
+    position:relative;
+    width:64px; height:64px;
+    border:1.5px solid var(--ink);
+  }
+  .gallery-thumb img{width:100%; height:100%; object-fit:cover; display:block;}
+  .gallery-thumb .rm{
+    position:absolute; top:-8px; right:-8px;
+    width:20px; height:20px;
+    background:var(--ink); color:#fff;
+    border:none; font-size:12px; line-height:1;
+    cursor:pointer;
+  }
+  .gallery-add-box{
+    width:100%;
+    font-size:11px !important;
+  }
+
+  .color-row{display:flex; align-items:center; gap:10px; margin-top:4px;}
+  input[type=color]{
+    width:44px; height:34px; border:1.5px solid var(--ink); padding:2px; background:#fff; cursor:pointer;
+  }
+
+  /* ---------- Preview column ---------- */
+  .preview-col{position:sticky; top:24px;}
+  .plate{
+    border:1.5px solid var(--ink);
+    background:#FBF9F3;
+    padding:26px 22px 22px;
+    position:relative;
+  }
+  .crop{
+    position:absolute; width:16px; height:16px;
+  }
+  .crop::before, .crop::after{content:""; position:absolute; background:var(--ink);}
+  .crop::before{width:16px; height:1.5px; top:8px;}
+  .crop::after{height:16px; width:1.5px; left:8px;}
+  .crop.tl{top:-8px; left:-8px;}
+  .crop.tr{top:-8px; right:-8px;}
+  .crop.bl{bottom:-8px; left:-8px;}
+  .crop.br{bottom:-8px; right:-8px;}
+
+  .plate-strip{
+    display:flex; justify-content:center; gap:16px;
+    margin-bottom:16px;
+  }
+  .plate-strip span{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:9px; letter-spacing:1px; color:var(--ink-soft);
+  }
+
+  /* the card itself */
+  #card-render{
+    width:100%;
+    max-width:340px;
+    margin:0 auto;
+    background:#e9f7f2;
+    border-radius:18px;
+    overflow:hidden;
+    box-shadow:0 10px 30px rgba(0,0,0,0.18);
+  }
+  .banner{
+    position:relative;
+    height:150px;
+    background:#d9d9d9 no-repeat center/cover;
+  }
+  .logo-box{
+    position:absolute;
+    top:12px; right:12px;
+    background:#fff;
+    padding:6px 10px;
+    max-width:110px;
+    max-height:52px;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 2px 8px rgba(0,0,0,0.15);
+  }
+  .logo-box img{max-width:100%; max-height:40px; object-fit:contain;}
+  .logo-box .logo-fallback{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:9px; color:#999;
+  }
+  .avatar-wrap{
+    position:absolute;
+    left:14px; bottom:-30px;
+    width:76px; height:76px;
+    border-radius:50%;
+    border:3px solid #fff;
+    background:#ccc no-repeat center/cover;
+    box-shadow:0 3px 10px rgba(0,0,0,0.2);
+  }
+  .card-body{
+    background:#fff;
+    padding:42px 18px 20px;
+  }
+  .c-name{
+    font-family:'Inter',sans-serif;
+    font-weight:800;
+    font-size:23px;
+    color:#1a1a1a;
+    margin:0 0 4px;
+  }
+  .c-line{
+    font-size:15px;
+    color:#3a3a3a;
+    line-height:1.35;
+    font-weight:500;
+  }
+  .c-sub{
+    font-size:12.5px;
+    color:#8a8a8a;
+    margin-top:6px;
+    line-height:1.4;
+  }
+  .badges{margin-top:14px; display:flex; flex-direction:column; gap:6px;}
+  .badges div{
+    background:#f0efe9;
+    font-size:11.5px;
+    font-weight:600;
+    color:#222;
+    padding:8px 10px;
+    line-height:1.3;
+  }
+  .card-section-label{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10px;
+    letter-spacing:1.2px;
+    text-transform:uppercase;
+    color:#9a9a9a;
+    margin:18px 0 8px;
+  }
+  .services{display:flex; flex-direction:column; gap:8px;}
+  .service-item{
+    display:flex; align-items:flex-start; gap:9px;
+    font-size:13px; color:#333; line-height:1.4;
+  }
+  .service-item .tick{
+    width:18px; height:18px; border-radius:50%;
+    background:var(--card-accent-clr, #2EC4A6);
+    color:#fff; font-size:11px;
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0; margin-top:1px;
+  }
+  .gallery{
+    display:grid; grid-template-columns:1fr 1fr; gap:8px;
+  }
+  .gallery img{
+    width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:10px;
+    cursor:pointer;
+    transition:transform 0.15s ease;
+  }
+  .gallery img:hover{transform:scale(1.03);}
+
+  /* lightbox */
+  .lightbox{
+    position:fixed; inset:0; background:rgba(10,10,8,0.9);
+    display:none; align-items:center; justify-content:center;
+    z-index:1000; padding:24px; cursor:zoom-out;
+  }
+  .lightbox.show{display:flex;}
+  .lightbox img{max-width:100%; max-height:100%; border-radius:6px; box-shadow:0 10px 40px rgba(0,0,0,0.4);}
+  .contacts{margin-top:16px; display:flex; flex-direction:column; gap:2px;}
+  .contact-row{
+    display:flex; align-items:center; gap:12px;
+    text-decoration:none;
+    padding:8px 6px;
+    border-radius:10px;
+    transition:background 0.15s ease, transform 0.1s ease;
+    cursor:pointer;
+  }
+  .contact-row:hover{background:#f2f9f6; transform:translateX(2px);}
+  .contact-row:active{transform:scale(0.98);}
+  .c-icon{
+    width:34px; height:34px; border-radius:50%;
+    background:var(--card-accent-clr, #2EC4A6);
+    display:flex; align-items:center; justify-content:center;
+    color:#fff; font-size:15px; flex-shrink:0;
+    transition:transform 0.15s ease;
+  }
+  .contact-row:hover .c-icon{transform:scale(1.08);}
+  .c-text b{display:block; font-size:13.5px; color:#1a1a1a;}
+  .c-text span{font-size:11px; color:#999;}
+  .save-btn{
+    margin-top:20px;
+    width:100%;
+    background:var(--card-accent-clr, #2EC4A6);
+    color:#fff;
+    border:none;
+    padding:14px;
+    border-radius:26px;
+    font-size:15px;
+    font-weight:700;
+    font-family:'Inter',sans-serif;
+    text-align:center;
+    cursor:pointer;
+    transition:transform 0.1s ease, box-shadow 0.15s ease;
+  }
+  .save-btn:hover{box-shadow:0 6px 16px rgba(0,0,0,0.18);}
+  .save-btn:active{transform:scale(0.97);}
+
+  .share-row{display:flex; gap:10px; flex-wrap:wrap;}
+  .share-row .btn{flex:1;}
+  .cloud-url-box{
+    width:100%;
+    margin-top:10px;
+    border:1.5px solid var(--ink);
+    background:#fff;
+    padding:9px 10px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11.5px;
+    color:var(--ink);
+  }
+  .autosave-note{
+    margin-top:8px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:9.5px;
+    color:var(--ink-soft);
+    letter-spacing:0.3px;
+  }
+
+  /* ---------- Toast ---------- */
+  .toast{
+    position:fixed;
+    bottom:24px; left:50%;
+    transform:translate(-50%, 20px);
+    background:var(--ink);
+    color:#fff;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    letter-spacing:0.4px;
+    padding:12px 20px;
+    border-radius:4px;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity 0.25s ease, transform 0.25s ease;
+    z-index:999;
+  }
+  .toast.show{opacity:1; transform:translate(-50%, 0);}
+
+  /* QR section */
+  .qr-zone{
+    margin-top:20px;
+    display:flex;
+    gap:18px;
+    align-items:center;
+    justify-content:center;
+    flex-wrap:wrap;
+  }
+  .qr-mode-toggle{
+    display:flex; justify-content:center; gap:0;
+    margin-top:20px;
+    border:1.5px solid var(--ink);
+    width:fit-content;
+    margin-left:auto; margin-right:auto;
+  }
+  .mode-btn{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    letter-spacing:0.5px;
+    text-transform:uppercase;
+    padding:9px 14px;
+    border:none;
+    background:#fff;
+    color:var(--ink-soft);
+    cursor:pointer;
+    border-right:1.5px solid var(--ink);
+  }
+  .mode-btn:last-child{border-right:none;}
+  .mode-btn.active{background:var(--ink); color:#fff;}
+  #qrcode{
+    background:#fff;
+    padding:10px;
+    border:1.5px solid var(--ink);
+  }
+  .qr-meta{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    color:var(--ink-soft);
+    max-width:180px;
+    line-height:1.5;
+  }
+  .qr-meta b{color:var(--ink); display:block; font-size:11px; margin-bottom:4px; letter-spacing:1px;}
+
+  .actions{
+    display:flex; gap:10px; flex-wrap:wrap;
+    margin-top:20px;
+    justify-content:center;
+  }
+  .btn{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:0.6px;
+    text-transform:uppercase;
+    padding:11px 16px;
+    border:1.5px solid var(--ink);
+    background:#fff;
+    cursor:pointer;
+  }
+  .btn.primary{background:var(--ink); color:#fff;}
+  .btn:hover{opacity:0.85;}
+
+  .footer-note{
+    max-width:1180px;
+    margin:34px auto 0;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    color:var(--ink-soft);
+    text-align:center;
+    letter-spacing:0.3px;
+  }
+</style>
+</head>
+<body>
+
+<div class="masthead">
+  <div class="masthead-title">
+    <h1>CARD<span>/</span>CODE</h1>
+  </div>
+  <div>
+    <div class="plate-dots">
+      <span class="c"></span><span class="m"></span><span class="y"></span><span class="k"></span>
+      <span class="plate-label">Register Marks OK</span>
+    </div>
+    <div class="masthead-sub" style="text-align:right; margin-top:4px;">Admin editor — private, never shown to visitors</div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- FORM PANEL -->
+  <div class="panel">
+    <div class="panel-head">
+      <h2>Plate Setup</h2>
+      <span class="tag">01 / INPUT</span>
+    </div>
+    <div class="panel-body">
+
+      <div class="section-label">Identity</div>
+      <div class="field-row">
+        <div><label>Full name</label><input type="text" id="f-name" value="Nazrul"></div>
+        <div><label>Job title</label><input type="text" id="f-title" value="Creative Graphic Designer"></div>
+      </div>
+      <div class="field-row">
+        <div><label>Department</label><input type="text" id="f-dept" value="Design Department"></div>
+        <div><label>Company</label><input type="text" id="f-company" value="Proton Printing Press"></div>
+      </div>
+      <div class="field-row single">
+        <div><label>Subtitle / specialty line</label><input type="text" id="f-sub" value="Brand Identity, Print Production & UI/UX"></div>
+      </div>
+
+      <div class="section-label">Photos</div>
+      <div class="upload-row">
+        <label class="upload-box" id="banner-box">Upload banner photo
+          <input type="file" id="f-banner" accept="image/*">
+        </label>
+        <label class="upload-box" id="avatar-box">Upload avatar
+          <input type="file" id="f-avatar" accept="image/*">
+        </label>
+        <label class="upload-box" id="logo-box-up">Upload logo
+          <input type="file" id="f-logo" accept="image/*">
+        </label>
+      </div>
+
+      <div class="section-label">Credentials</div>
+      <div class="badge-list" id="badge-list"></div>
+      <button class="add-badge" id="add-badge" type="button">+ Add credential line</button>
+
+      <div class="section-label">Our services</div>
+      <div class="badge-list" id="service-list"></div>
+      <button class="add-badge" id="add-service" type="button">+ Add service</button>
+
+      <div class="section-label">Our work / portfolio images</div>
+      <div class="gallery-upload-row" id="gallery-thumbs"></div>
+      <label class="upload-box gallery-add-box" id="gallery-add-box">+ Add work sample
+        <input type="file" id="f-gallery" accept="image/*" multiple>
+      </label>
+
+      <div class="section-label">Contact</div>
+      <div class="field-row">
+        <div><label>Mobile</label><input type="tel" id="f-phone" value="+971552178767"></div>
+        <div><label>Email</label><input type="email" id="f-email" value="nazrulcxd@gmail.com"></div>
+      </div>
+      <div class="field-row">
+        <div><label>Website</label><input type="url" id="f-website" value="https://nazrulstudio.uk"></div>
+        <div><label>Location</label><input type="text" id="f-location" value="Sharjah, United Arab Emirates"></div>
+      </div>
+      <div class="field-row">
+        <div><label>Link label</label><input type="text" id="f-portfolio-label" value="Portfolio" placeholder="e.g. My Work, Case Studies, Book a Call"></div>
+        <div><label>Link URL</label><input type="url" id="f-portfolio" value=""></div>
+      </div>
+
+      <div class="section-label">Social &amp; Payments</div>
+      <div class="field-row">
+        <div><label>Instagram URL</label><input type="url" id="f-instagram" value=""></div>
+        <div><label>WhatsApp number</label><input type="tel" id="f-whatsapp" value=""></div>
+      </div>
+      <div class="field-row">
+        <div><label>LinkedIn URL</label><input type="url" id="f-linkedin" value=""></div>
+        <div><label>PayPal link</label><input type="url" id="f-paypal" value=""></div>
+      </div>
+
+      <div class="section-label">Accent color</div>
+      <div class="color-row">
+        <input type="color" id="f-accent" value="#2EC4A6">
+        <span style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink-soft);">Card & QR foreground</span>
+      </div>
+
+      <div class="section-label">Go live</div>
+      <div class="autosave-note" id="autosave-note">Draft autosaves on this device — this editor is admin-only and never turns into the public view.</div>
+
+      <div class="share-row" style="margin-top:10px;">
+        <button class="btn primary" id="publish-cloud" type="button">☁ Publish to card-view.html</button>
+      </div>
+      <input type="text" id="cloud-url" class="cloud-url-box" readonly placeholder="Published link appears here" style="display:none;">
+      <div class="autosave-note">This is the only link to hand out — it opens the clean public card, never this editor.</div>
+
+    </div>
+  </div>
+
+  <!-- PREVIEW / QR PANEL -->
+  <div class="preview-col">
+    <div class="plate">
+      <div class="crop tl"></div><div class="crop tr"></div><div class="crop bl"></div><div class="crop br"></div>
+      <div class="plate-strip">
+        <span>PROOF — SCALE 1:1</span><span>02 / OUTPUT</span>
+      </div>
+
+      <div id="card-render">
+        <div class="banner" id="p-banner">
+          <div class="avatar-wrap" id="p-avatar"></div>
+          <div class="logo-box" id="p-logo"><span class="logo-fallback">LOGO</span></div>
+        </div>
+        <div class="card-body">
+          <div class="c-name" id="p-name">Nazrul</div>
+          <div class="c-line" id="p-title">Creative Graphic Designer</div>
+          <div class="c-line" id="p-dept">Design Department</div>
+          <div class="c-line" id="p-company">Proton Printing Press</div>
+          <div class="c-sub" id="p-sub"></div>
+
+          <div class="contacts" id="p-contacts"></div>
+
+          <div class="badges" id="p-badges"></div>
+
+          <div class="card-section-label" id="services-label" style="display:none;">Our Services</div>
+          <div class="services" id="p-services"></div>
+
+          <div class="card-section-label" id="gallery-label" style="display:none;">Our Work</div>
+          <div class="gallery" id="p-gallery"></div>
+
+          <button class="save-btn" id="p-savebtn" type="button">Save Contact</button>
+        </div>
+      </div>
+
+      <div class="qr-mode-toggle">
+        <button type="button" class="mode-btn" id="mode-vcard">Contact only</button>
+        <button type="button" class="mode-btn" id="mode-link">Full live card</button>
+      </div>
+
+      <div class="qr-zone">
+        <div id="qrcode"></div>
+        <div class="qr-meta" id="qr-meta-text"></div>
+      </div>
+
+      <div class="actions">
+        <button class="btn primary" id="dl-qr">Download QR (PNG)</button>
+        <button class="btn" id="dl-vcf">Download vCard (.vcf)</button>
+        <button class="btn" id="dl-card">Download Card (PNG)</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer-note">CARD/CODE — single-file, no build step, runs entirely in-browser. Nothing is uploaded to a server.</div>
+
+<script type="module">
+  // ---------- Firebase (cloud publish: hosted images + short link) ----------
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getFirestore, doc, setDoc, collection } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { getStorage, ref as storageRef, uploadString, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyD6oI4kGHyyU_ugfiAp0y5fX4Yh7dvlVEA",
+    authDomain: "portfolio-ec28a.firebaseapp.com",
+    projectId: "portfolio-ec28a",
+    storageBucket: "portfolio-ec28a.firebasestorage.app",
+    messagingSenderId: "570524528938",
+    appId: "1:570524528938:web:229d182658576811acae53"
+  };
+  const fbApp = initializeApp(firebaseConfig);
+  const db = getFirestore(fbApp);
+  const storage = getStorage(fbApp);
+
+  const $ = id => document.getElementById(id);
+
+  // ---------- QR mode + publish tracking ----------
+  function buildPublishedURL(id){
+    // Points at the separate public viewer file, never at this admin editor.
+    return `${location.href.replace(/[^/]*$/, '')}card-view.html?id=${id}`;
+  }
+  let qrMode = localStorage.getItem('cardcode_qr_mode') || 'vcard'; // 'vcard' | 'link'
+  let publishedId = localStorage.getItem('cardcode_published_id') || null;
+  let publishedURL = publishedId ? buildPublishedURL(publishedId) : null;
+  let dirtySincePublish = false;
+  let isApplyingState = false;
+
+  // ---------- state ----------
+  let images = { banner:null, avatar:null, logo:null };
+  let badges = [
+    "Active Member – AIGA, The Professional Association for Design (Since 2012)",
+    "Adobe Certified Professional – Visual Design using Adobe Photoshop & Illustrator (2020)",
+    "Brand Strategy Master Certification – Section School / Scott Galloway (2022)"
+  ];
+  let services = [
+    "Brand identity & logo design",
+    "Print production & art direction",
+    "Digital business cards & QR systems"
+  ];
+  let gallery = [];
+
+  const ICONS = {
+    phone: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.36 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.34 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>',
+    email: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M22 6l-10 7L2 6"/></svg>',
+    website: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 0 20 15.3 15.3 0 0 1 0-20z"/></svg>',
+    location: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>',
+    portfolio: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>',
+    instagram: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="#fff" stroke="none"/></svg>',
+    whatsapp: '<svg viewBox="0 0 24 24" width="16" height="16" fill="#fff" stroke="none"><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2zm0 18a8 8 0 0 1-4.1-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8 8 0 1 1 12 20z"/><path d="M9.1 7.6c-.2-.5-.4-.5-.6-.5h-.5c-.2 0-.5.1-.7.3-.3.3-1 1-1 2.3s1 2.6 1.1 2.8c.1.2 2 3 4.8 4.2 2.3 1 2.8.8 3.3.7.5-.1 1.6-.6 1.8-1.3.2-.6.2-1.2.2-1.3-.1-.1-.2-.2-.5-.3l-1.9-.9c-.3-.1-.5-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1-.3-.1-1.2-.5-2.3-1.5-.8-.7-1.4-1.6-1.6-1.9-.1-.2 0-.4.1-.5l.4-.5c.1-.2.2-.3.2-.5.1-.2 0-.4 0-.5l-.9-2.1z"/></svg>',
+    linkedin: '<svg viewBox="0 0 24 24" width="16" height="16" fill="#fff" stroke="none"><rect x="2" y="2" width="20" height="20" rx="3" fill="none"/><path d="M6.94 8.5a1.94 1.94 0 1 0 0-3.88 1.94 1.94 0 0 0 0 3.88zM5.25 10.25h3.38V19H5.25v-8.75zM10.75 10.25h3.24v1.2h.05c.45-.8 1.55-1.65 3.2-1.65 3.42 0 4.05 2.1 4.05 4.85V19h-3.38v-4.6c0-1.1 0-2.5-1.5-2.5-1.5 0-1.75 1.2-1.75 2.42V19h-3.4v-8.75z"/></svg>',
+    paypal: '<svg viewBox="0 0 24 24" width="16" height="16" fill="#fff" stroke="none"><path d="M7.5 4.5h5.4c2.7 0 4.3 1.4 3.9 3.9-.4 2.9-2.4 4.4-5.3 4.4H9.9l-.7 4.2H6.4l1.1-12.5zm2.1 2.1-.5 3.2h1.6c1.3 0 2.2-.6 2.4-1.9.2-1.1-.5-1.3-1.6-1.3H9.6z"/><path d="M13.8 8.3c1.9.2 3-.7 3.4-2.6.1-.7.1-1.2 0-1.5-.8.3-1.5.9-1.8 1.9-.3.9-.9 1.7-1.6 2.2z" opacity=".55"/></svg>'
+  };
+  const iconFor = (type) => ICONS[type] || '';
+
+  // ---------- editable text-list rendering (used for credentials + services) ----------
+  function makeListEditor(arr, listElId, addBtnId, placeholderText, onChange){
+    function render(){
+      const list = $(listElId);
+      list.innerHTML = '';
+      arr.forEach((val, i) => {
+        const row = document.createElement('div');
+        row.className = 'badge-item';
+        row.innerHTML = `<input type="text" data-idx="${i}" value="${val.replace(/"/g,'&quot;')}">
+          <button class="icon-btn" data-remove="${i}" type="button" title="Remove">×</button>`;
+        list.appendChild(row);
+      });
+      list.querySelectorAll('input').forEach(inp=>{
+        inp.addEventListener('input', e=>{
+          arr[+e.target.dataset.idx] = e.target.value;
+          onChange();
+        });
+      });
+      list.querySelectorAll('[data-remove]').forEach(btn=>{
+        btn.addEventListener('click', e=>{
+          arr.splice(+e.target.dataset.remove, 1);
+          render();
+          onChange();
+        });
+      });
+    }
+    $(addBtnId).addEventListener('click', ()=>{
+      arr.push(placeholderText);
+      render();
+      onChange();
+    });
+    return render;
+  }
+
+  const renderBadgeInputs = makeListEditor(badges, 'badge-list', 'add-badge', 'New credential or certification', renderCard);
+  const renderServiceInputs = makeListEditor(services, 'service-list', 'add-service', 'New service', renderCard);
+
+  // ---------- image resizing (keeps localStorage + uploads fast, even with 40+ photos) ----------
+  function resizeDataURL(dataUrl, maxDim = 1280, quality = 0.82){
+    return new Promise(resolve=>{
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if(width > maxDim || height > maxDim){
+          if(width > height){ height = Math.round(height * maxDim / width); width = maxDim; }
+          else { width = Math.round(width * maxDim / height); height = maxDim; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = () => resolve(dataUrl);
+      img.src = dataUrl;
+    });
+  }
+
+  // ---------- portfolio gallery ----------
+  function renderGalleryThumbs(){
+    const wrap = $('gallery-thumbs');
+    wrap.innerHTML = gallery.map((src, i) => `
+      <div class="gallery-thumb">
+        <img src="${src}">
+        <button class="rm" data-rm-gallery="${i}" type="button" title="Remove">×</button>
+      </div>`).join('');
+    wrap.querySelectorAll('[data-rm-gallery]').forEach(btn=>{
+      btn.addEventListener('click', e=>{
+        gallery.splice(+e.target.dataset.rmGallery, 1);
+        renderGalleryThumbs();
+        renderCard();
+      });
+    });
+  }
+  $('f-gallery').addEventListener('change', async e=>{
+    const files = Array.from(e.target.files || []);
+    e.target.value = '';
+    if(!files.length) return;
+    for(const file of files){
+      const raw = await new Promise(resolve=>{
+        const reader = new FileReader();
+        reader.onload = ev => resolve(ev.target.result);
+        reader.readAsDataURL(file);
+      });
+      const resized = await resizeDataURL(raw);
+      gallery.push(resized);
+      renderGalleryThumbs();
+    }
+    renderCard();
+  });
+
+  // ---------- image uploads ----------
+  function bindUpload(inputId, boxId, key){
+    $(inputId).addEventListener('change', async e=>{
+      const file = e.target.files[0];
+      if(!file) return;
+      const raw = await new Promise(resolve=>{
+        const reader = new FileReader();
+        reader.onload = ev => resolve(ev.target.result);
+        reader.readAsDataURL(file);
+      });
+      const resized = await resizeDataURL(raw, key === 'avatar' || key === 'logo' ? 640 : 1600, 0.85);
+      images[key] = resized;
+      const box = $(boxId);
+      box.innerHTML = `<img src="${resized}"><input type="file" accept="image/*" id="${inputId}">`;
+      bindUpload(inputId, boxId, key);
+      renderCard();
+    });
+  }
+  bindUpload('f-banner','banner-box','banner');
+  bindUpload('f-avatar','avatar-box','avatar');
+  bindUpload('f-logo','logo-box-up','logo');
+
+  // ---------- vCard builder ----------
+  function buildVCard(){
+    const name = $('f-name').value.trim();
+    const parts = name.split(' ');
+    const last = parts.length>1 ? parts.pop() : '';
+    const first = parts.join(' ');
+    const title = $('f-title').value.trim();
+    const company = $('f-company').value.trim();
+    const dept = $('f-dept').value.trim();
+    const phone = $('f-phone').value.trim();
+    const email = $('f-email').value.trim();
+    const website = $('f-website').value.trim();
+    const location = $('f-location').value.trim();
+
+    let vcf = 'BEGIN:VCARD\nVERSION:3.0\n';
+    vcf += `N:${last};${first};;;\n`;
+    vcf += `FN:${name}\n`;
+    if(company) vcf += `ORG:${company}${dept?';'+dept:''}\n`;
+    if(title) vcf += `TITLE:${title}\n`;
+    if(phone) vcf += `TEL;TYPE=CELL:${phone}\n`;
+    if(email) vcf += `EMAIL:${email}\n`;
+    if(website) vcf += `URL:${website}\n`;
+    if(location) vcf += `ADR;TYPE=WORK:;;${location};;;;\n`;
+    vcf += 'END:VCARD';
+    return vcf;
+  }
+
+  function downloadVCard(){
+    const blob = new Blob([buildVCard()], {type:'text/vcard'});
+    const link = document.createElement('a');
+    link.download = `${$('f-name').value.replace(/\s+/g,'-').toLowerCase()}.vcf`;
+    link.href = URL.createObjectURL(blob);
+    link.click();
+  }
+  $('p-savebtn').addEventListener('click', downloadVCard);
+
+  function digitsOnly(s){ return (s||'').replace(/[^\d+]/g,'').replace(/^\+?/, m=>m); }
+
+  function openLightbox(src){
+    let lb = $('lightbox');
+    if(!lb){
+      lb = document.createElement('div');
+      lb.id = 'lightbox';
+      lb.className = 'lightbox';
+      lb.innerHTML = '<img id="lightbox-img">';
+      lb.addEventListener('click', ()=> lb.classList.remove('show'));
+      document.body.appendChild(lb);
+    }
+    $('lightbox-img').src = src;
+    lb.classList.add('show');
+  }
+
+
+  function hrefFor(type, val){
+    if(!val) return '#';
+    switch(type){
+      case 'phone': return `tel:${val.replace(/[^\d+]/g,'')}`;
+      case 'email': return `mailto:${val}`;
+      case 'website': return val.startsWith('http') ? val : `https://${val}`;
+      case 'location': return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(val)}`;
+      case 'portfolio': return val.startsWith('http') ? val : `https://${val}`;
+      case 'instagram': return val.startsWith('http') ? val : `https://instagram.com/${val.replace('@','')}`;
+      case 'whatsapp': return `https://wa.me/${val.replace(/[^\d]/g,'')}`;
+      case 'linkedin': return val.startsWith('http') ? val : `https://linkedin.com/in/${val}`;
+      case 'paypal': return val.startsWith('http') ? val : `https://paypal.me/${val}`;
+      default: return '#';
+    }
+  }
+
+  let qr = null;
+  function updateModeButtons(){
+    $('mode-vcard').classList.toggle('active', qrMode === 'vcard');
+    $('mode-link').classList.toggle('active', qrMode === 'link');
+  }
+  function updateQRMeta(){
+    const meta = $('qr-meta-text');
+    if(qrMode === 'link'){
+      if(!publishedURL){
+        meta.innerHTML = '<b>NOT PUBLISHED YET</b>Click "☁ Publish" below first — this QR will then open your full live card, services and portfolio included.';
+      } else if(dirtySincePublish){
+        meta.innerHTML = '<b>LINKS TO YOUR LIVE CARD</b>You\'ve edited since the last publish. Click "☁ Publish" again so the QR opens the updated version.';
+      } else {
+        meta.innerHTML = '<b>LINKS TO YOUR LIVE CARD</b>Scanning opens the full card — services, portfolio images, everything, all live-hosted.';
+      }
+    } else {
+      meta.innerHTML = '<b>SCAN TO SAVE</b>Encodes a standard vCard. Any phone camera adds this contact directly — no app required.';
+    }
+  }
+  function renderQR(){
+    const accent = $('f-accent').value;
+    $('qrcode').innerHTML = '';
+    const text = (qrMode === 'link' && publishedURL) ? publishedURL : buildVCard();
+    qr = new QRCode($('qrcode'), {
+      text: text,
+      width: 168,
+      height: 168,
+      colorDark: accent,
+      colorLight: "#ffffff",
+      correctLevel: QRCode.CorrectLevel.M
+    });
+    updateModeButtons();
+    updateQRMeta();
+  }
+  $('mode-vcard').addEventListener('click', ()=>{
+    qrMode = 'vcard';
+    localStorage.setItem('cardcode_qr_mode', qrMode);
+    renderQR();
+  });
+  $('mode-link').addEventListener('click', ()=>{
+    qrMode = 'link';
+    localStorage.setItem('cardcode_qr_mode', qrMode);
+    renderQR();
+  });
+
+  // ---------- card render ----------
+  function renderCard(){
+    if(publishedURL && !isApplyingState) dirtySincePublish = true;
+    const accent = $('f-accent').value;
+    document.documentElement.style.setProperty('--card-accent-clr', accent);
+    document.querySelectorAll('.c-icon, .save-btn').forEach(el=>{
+      el.style.background = accent;
+    });
+
+    $('p-name').textContent = $('f-name').value;
+    $('p-title').textContent = $('f-title').value;
+    $('p-dept').textContent = $('f-dept').value;
+    $('p-company').textContent = $('f-company').value;
+    $('p-sub').textContent = $('f-sub').value;
+
+    $('p-banner').style.backgroundImage = images.banner ? `url(${images.banner})` : 'none';
+    $('p-avatar').style.backgroundImage = images.avatar ? `url(${images.avatar})` : 'none';
+    $('p-logo').innerHTML = images.logo ? `<img src="${images.logo}">` : `<span class="logo-fallback">LOGO</span>`;
+
+    $('p-badges').innerHTML = badges.filter(b=>b.trim()).map(b=>`<div>${b}</div>`).join('');
+
+    const activeServices = services.filter(s=>s.trim());
+    $('services-label').style.display = activeServices.length ? '' : 'none';
+    $('p-services').innerHTML = activeServices.map(s=>`
+      <div class="service-item"><span class="tick">✓</span><span>${s}</span></div>`).join('');
+
+    $('gallery-label').style.display = gallery.length ? '' : 'none';
+    $('p-gallery').innerHTML = gallery.map(src=>`<img src="${src}">`).join('');
+    $('p-gallery').querySelectorAll('img').forEach(img=>{
+      img.addEventListener('click', ()=> openLightbox(img.src));
+    });
+
+    const rows = [
+      {type:'phone', label:'Mobile', val:$('f-phone').value},
+      {type:'email', label:'Personal', val:$('f-email').value},
+      {type:'website', label:'Website', val:$('f-website').value.replace(/^https?:\/\//,'')},
+      {type:'location', label:'', val:$('f-location').value},
+      {type:'portfolio', label:'', val:$('f-portfolio').value ? ($('f-portfolio-label').value.trim() || 'Portfolio') : ''},
+      {type:'instagram', label:'', val:$('f-instagram').value ? 'Instagram' : ''},
+      {type:'whatsapp', label:'', val:$('f-whatsapp').value ? 'Connect with me on WhatsApp' : ''},
+      {type:'linkedin', label:'', val:$('f-linkedin').value ? 'Connect with me on LinkedIn' : ''},
+      {type:'paypal', label:'', val:$('f-paypal').value ? 'Paypal' : ''}
+    ].filter(r=>r.val);
+
+    const rawFor = {
+      phone: $('f-phone').value, email: $('f-email').value, website: $('f-website').value,
+      location: $('f-location').value, portfolio: $('f-portfolio').value,
+      instagram: $('f-instagram').value, whatsapp: $('f-whatsapp').value,
+      linkedin: $('f-linkedin').value, paypal: $('f-paypal').value
+    };
+
+    $('p-contacts').innerHTML = rows.map(r=>`
+      <a class="contact-row" href="${hrefFor(r.type, rawFor[r.type])}" target="_blank" rel="noopener">
+        <div class="c-icon">${iconFor(r.type)}</div>
+        <div class="c-text"><b>${r.val}</b>${r.label ? `<span>${r.label}</span>` : ''}</div>
+      </a>`).join('');
+
+    renderQR();
+    saveLocal();
+  }
+
+  // ---------- live update bindings ----------
+  ['f-name','f-title','f-dept','f-company','f-sub','f-phone','f-email','f-website','f-location','f-portfolio','f-portfolio-label',
+   'f-instagram','f-whatsapp','f-linkedin','f-paypal','f-accent']
+    .forEach(id => $(id).addEventListener('input', renderCard));
+
+  // ---------- downloads ----------
+  $('dl-qr').addEventListener('click', ()=>{
+    const canvas = document.querySelector('#qrcode canvas');
+    if(!canvas) return;
+    const link = document.createElement('a');
+    link.download = `${$('f-name').value.replace(/\s+/g,'-').toLowerCase()}-qr.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  });
+
+  $('dl-vcf').addEventListener('click', downloadVCard);
+
+  $('dl-card').addEventListener('click', ()=>{
+    html2canvas($('card-render'), {scale:3, useCORS:true}).then(canvas=>{
+      const link = document.createElement('a');
+      link.download = `${$('f-name').value.replace(/\s+/g,'-').toLowerCase()}-card.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    });
+  });
+
+  // ---------- state serialization (for autosave + shareable link) ----------
+  const FIELD_IDS = ['f-name','f-title','f-dept','f-company','f-sub','f-phone','f-email','f-website',
+    'f-location','f-portfolio','f-portfolio-label','f-instagram','f-whatsapp','f-linkedin','f-paypal','f-accent'];
+
+  function buildStateObject(){
+    const fields = {};
+    FIELD_IDS.forEach(id => fields[id] = $(id).value);
+    return { fields, badges, services, gallery, images };
+  }
+
+  function applyState(state){
+    if(!state) return;
+    isApplyingState = true;
+    FIELD_IDS.forEach(id => { if(state.fields && state.fields[id] !== undefined) $(id).value = state.fields[id]; });
+    if(Array.isArray(state.badges)) badges = state.badges;
+    if(Array.isArray(state.services)) services = state.services;
+    if(Array.isArray(state.gallery)) gallery = state.gallery;
+    if(state.images){
+      images = state.images;
+      if(images.banner) $('banner-box').innerHTML = `<img src="${images.banner}"><input type="file" accept="image/*" id="f-banner">`;
+      if(images.avatar) $('avatar-box').innerHTML = `<img src="${images.avatar}"><input type="file" accept="image/*" id="f-avatar">`;
+      if(images.logo) $('logo-box-up').innerHTML = `<img src="${images.logo}"><input type="file" accept="image/*" id="f-logo">`;
+      bindUpload('f-banner','banner-box','banner');
+      bindUpload('f-avatar','avatar-box','avatar');
+      bindUpload('f-logo','logo-box-up','logo');
+    }
+    renderBadgeInputs();
+    renderServiceInputs();
+    renderGalleryThumbs();
+    renderCard();
+    isApplyingState = false;
+  }
+
+  // ---------- local autosave ----------
+  const DRAFT_KEY = 'cardcode_draft_v1';
+  function saveLocal(){
+    try{ localStorage.setItem(DRAFT_KEY, JSON.stringify(buildStateObject())); }catch(e){}
+  }
+  function loadLocal(){
+    try{
+      const raw = localStorage.getItem(DRAFT_KEY);
+      return raw ? JSON.parse(raw) : null;
+    }catch(e){ return null; }
+  }
+
+  function showToast(msg){
+    let t = $('toast');
+    if(!t){
+      t = document.createElement('div');
+      t.id = 'toast';
+      t.className = 'toast';
+      document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t._timer);
+    t._timer = setTimeout(()=> t.classList.remove('show'), 2400);
+  }
+
+  // ---------- cloud publish (Firebase) ----------
+  async function uploadImageIfNeeded(path, dataUrl){
+    if(!dataUrl || !dataUrl.startsWith('data:')) return dataUrl || null;
+    const ref = storageRef(storage, path);
+    await uploadString(ref, dataUrl, 'data_url');
+    return await getDownloadURL(ref);
+  }
+
+  // Runs async tasks with a concurrency cap so 40+ image uploads don't fire all at once,
+  // and reports progress via onProgress(done, total).
+  async function mapWithConcurrency(items, limit, worker, onProgress){
+    const results = new Array(items.length);
+    let nextIndex = 0, done = 0;
+    async function run(){
+      while(nextIndex < items.length){
+        const i = nextIndex++;
+        results[i] = await worker(items[i], i);
+        done++;
+        if(onProgress) onProgress(done, items.length);
+      }
+    }
+    const runners = Array.from({length: Math.min(limit, items.length) || 1}, run);
+    await Promise.all(runners);
+    return results;
+  }
+
+  $('publish-cloud').addEventListener('click', async ()=>{
+    const btn = $('publish-cloud');
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    try{
+      const state = buildStateObject();
+      const id = publishedId || doc(collection(db, 'cards')).id;
+
+      btn.textContent = 'Publishing…';
+      const imgs = {
+        banner: await uploadImageIfNeeded(`cards/${id}/banner.jpg`, state.images.banner),
+        avatar: await uploadImageIfNeeded(`cards/${id}/avatar.jpg`, state.images.avatar),
+        logo: await uploadImageIfNeeded(`cards/${id}/logo.jpg`, state.images.logo)
+      };
+      // keep already-uploaded images as URLs locally so a re-publish doesn't re-upload them
+      images.banner = imgs.banner; images.avatar = imgs.avatar; images.logo = imgs.logo;
+
+      const galleryUrls = await mapWithConcurrency(
+        state.gallery, 3,
+        (src, i) => uploadImageIfNeeded(`cards/${id}/gallery-${i}.jpg`, src),
+        (done, total) => { btn.textContent = `Publishing… ${done}/${total} photos`; }
+      );
+      gallery = galleryUrls; // local state now holds URLs too — future publishes skip these
+      renderGalleryThumbs();
+
+      await setDoc(doc(db, 'cards', id), {
+        fields: state.fields,
+        badges: state.badges,
+        services: state.services,
+        gallery: galleryUrls,
+        images: imgs,
+        updatedAt: Date.now()
+      });
+
+      if(!publishedId){
+        publishedId = id;
+        localStorage.setItem('cardcode_published_id', publishedId);
+      }
+      publishedURL = buildPublishedURL(publishedId);
+      dirtySincePublish = false;
+      saveLocal();
+
+      const box = $('cloud-url');
+      box.style.display = '';
+      box.value = publishedURL;
+      box.onclick = () => box.select();
+
+      if(qrMode === 'link') renderQR(); else updateQRMeta();
+
+      try{ await navigator.clipboard.writeText(publishedURL); showToast('Published — link copied'); }
+      catch(e){ showToast('Published — copy the link below'); }
+    }catch(err){
+      console.error(err);
+      showToast('Publish failed — check Firestore/Storage rules');
+    }finally{
+      btn.textContent = originalText;
+      btn.disabled = false;
+    }
+  });
+
+  // ---------- boot ----------
+  // This file is admin-only: it always loads the editor, regardless of any
+  // URL parameters. It never enters a hidden "viewer" state, so the Publish
+  // button can never disappear on you.
+  const draft = loadLocal();
+  if(draft) applyState(draft);
+  else { renderBadgeInputs(); renderServiceInputs(); renderGalleryThumbs(); renderCard(); }
+  if(publishedURL){
+    const box = $('cloud-url');
+    box.style.display = '';
+    box.value = publishedURL;
+    box.onclick = () => box.select();
+  }
+</script>
+
+</body>
+</html>
